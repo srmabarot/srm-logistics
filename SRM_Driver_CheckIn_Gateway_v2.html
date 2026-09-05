@@ -3,65 +3,371 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+
 <title>SRM Logistics Driver Check-In</title>
+
 <style>
-body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#fff;color:#1f2937;display:flex;min-height:100vh;align-items:center;justify-content:center;padding:24px}
-.card{width:min(760px,100%);border:1px solid #d7dee8;border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,.08);overflow:hidden;background:#fff}
-.header{padding:24px 28px;border-bottom:4px solid #0b2d5c}
-.brand{font-size:34px;font-weight:800;letter-spacing:.5px;color:#0b2d5c;margin:0}
-.sub{margin:6px 0 0;font-size:16px;font-weight:700;color:#4b5563}
-.content{padding:30px}
-.alert{border:3px solid #b83224;background:#fff7f5;border-radius:14px;padding:24px;text-align:center}
-.alert h1{margin:0 0 14px;color:#b83224;font-size:30px}
-.alert p{margin:10px 0;font-size:22px;font-weight:700;line-height:1.35}
-.address{color:#0b2d5c;font-size:21px!important}
-.help{margin-top:18px!important;color:#b83224}
-.open{text-align:center;padding:10px 0 0}
-.open h1{color:#14823b;font-size:28px;margin:0 0 12px}
-.open p{font-size:18px;margin:6px 0}
-.btn{display:inline-block;margin-top:18px;padding:14px 22px;border-radius:10px;background:#0b2d5c;color:#fff;text-decoration:none;font-weight:700;font-size:18px}
-.small{margin-top:20px;color:#6b7280;font-size:13px;text-align:center}
+body{
+  margin:0;
+  font-family:Arial,Helvetica,sans-serif;
+  background:#fff;
+  color:#1f2937;
+  display:flex;
+  min-height:100vh;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+  box-sizing:border-box;
+}
+
+.card{
+  width:min(760px,100%);
+  border:1px solid #d7dee8;
+  border-radius:18px;
+  box-shadow:0 10px 30px rgba(0,0,0,.08);
+  overflow:hidden;
+  background:#fff;
+}
+
+.header{
+  padding:24px 28px;
+  border-bottom:4px solid #0b2d5c;
+}
+
+.brand{
+  font-size:34px;
+  font-weight:800;
+  letter-spacing:.5px;
+  color:#0b2d5c;
+  margin:0;
+}
+
+.sub{
+  margin:6px 0 0;
+  font-size:16px;
+  font-weight:700;
+  color:#4b5563;
+}
+
+.content{
+  padding:30px;
+}
+
+.alert{
+  border:3px solid #b83224;
+  background:#fff7f5;
+  border-radius:14px;
+  padding:24px;
+  text-align:center;
+}
+
+.alert h1{
+  margin:0 0 14px;
+  color:#b83224;
+  font-size:30px;
+}
+
+.alert p{
+  margin:10px 0;
+  font-size:22px;
+  font-weight:700;
+  line-height:1.35;
+}
+
+.address{
+  color:#0b2d5c;
+  font-size:21px!important;
+}
+
+.help{
+  margin-top:18px!important;
+  color:#b83224;
+}
+
+.open{
+  text-align:center;
+  padding:10px 0 0;
+}
+
+.open h1{
+  color:#14823b;
+  font-size:28px;
+  margin:0 0 12px;
+}
+
+.open p{
+  font-size:18px;
+  margin:6px 0;
+}
+
+.btn{
+  display:inline-block;
+  margin:12px 8px 0;
+  padding:14px 22px;
+  border-radius:10px;
+  background:#0b2d5c;
+  color:#fff;
+  text-decoration:none;
+  font-weight:700;
+  font-size:18px;
+  border:0;
+  cursor:pointer;
+  min-width:250px;
+}
+
+.small{
+  margin-top:20px;
+  color:#6b7280;
+  font-size:13px;
+  text-align:center;
+}
 </style>
 </head>
+
 <body>
+
 <main class="card">
+
 <div class="header">
-<div class="brand">SRM</div>
-<div class="sub">Specialty Rolled Metals — Logistics Driver Check-In</div>
+  <div class="brand">SRM</div>
+  <div class="sub">
+    Specialty Rolled Metals — Logistics Driver Check-In
+  </div>
 </div>
+
 <div class="content" id="content"></div>
+
 </main>
+
 <script>
+
+/* EXISTING MICROSOFT FORM — DO NOT CHANGE */
 const FORM_URL = "https://forms.cloud.microsoft/Pages/ResponsePage.aspx?id=3cVIiWDZM0arWL-bU52JehAYwZgLLgZPmEQS1ku1pXBUOVRBWUJZNTM4WUhSVVQxVVFORUZYQktPNi4u";
+
 const TZ = "America/Chicago";
-function centralHourMinute(){
-  const parts = new Intl.DateTimeFormat("en-US",{timeZone:TZ,hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(new Date());
-  const hour = Number(parts.find(p=>p.type==="hour").value);
-  return {hour};
+
+
+/* GET CURRENT CENTRAL TIME */
+function centralTime(){
+
+  const parts = new Intl.DateTimeFormat("en-US",{
+    timeZone:TZ,
+    weekday:"short",
+    hour:"2-digit",
+    minute:"2-digit",
+    hour12:false
+  }).formatToParts(new Date());
+
+  return {
+    day:parts.find(p=>p.type==="weekday").value,
+    hour:Number(parts.find(p=>p.type==="hour").value),
+    minute:Number(parts.find(p=>p.type==="minute").value)
+  };
 }
-function isAfterHours(){
-  const {hour} = centralHourMinute();
-  return hour >= 17 || hour < 6;
+
+
+/* CONVERT CURRENT TIME TO MINUTES */
+function minutesNow(){
+
+  const {hour,minute}=centralTime();
+
+  return (hour*60)+minute;
 }
+
+
+/* CHECK WHETHER CURRENT TIME IS INSIDE A TIME RANGE */
+function between(startHour,startMinute,endHour,endMinute){
+
+  const now=minutesNow();
+
+  const start=(startHour*60)+startMinute;
+  const end=(endHour*60)+endMinute;
+
+  return now>=start && now<end;
+}
+
+
+/* =====================================================
+   PICKUP / LOADING HOURS
+
+   MONDAY–FRIDAY
+   6:00 AM – 4:00 PM
+   6:00 PM – 10:00 PM
+
+   SATURDAY
+   6:00 AM – 12:00 PM
+   4:00 PM – 9:00 PM
+
+   SUNDAY
+   CLOSED
+   ===================================================== */
+
+function pickupIsOpen(){
+
+  const {day}=centralTime();
+
+  if(
+    day==="Mon" ||
+    day==="Tue" ||
+    day==="Wed" ||
+    day==="Thu" ||
+    day==="Fri"
+  ){
+
+    return (
+      between(6,0,16,0) ||
+      between(18,0,22,0)
+    );
+  }
+
+
+  if(day==="Sat"){
+
+    return (
+      between(6,0,12,0) ||
+      between(16,0,21,0)
+    );
+  }
+
+
+  return false;
+}
+
+
+/* =====================================================
+   DELIVERY HOURS — BY APPOINTMENT ONLY
+
+   MONDAY–FRIDAY
+   7:00 AM – 3:00 PM
+
+   SATURDAY / SUNDAY
+   CLOSED
+   ===================================================== */
+
+function deliveryIsOpen(){
+
+  const {day}=centralTime();
+
+  if(
+    day==="Mon" ||
+    day==="Tue" ||
+    day==="Wed" ||
+    day==="Thu" ||
+    day==="Fri"
+  ){
+
+    return between(7,0,15,0);
+  }
+
+
+  return false;
+}
+
+
 const content=document.getElementById("content");
-if(isAfterHours()){
-  content.innerHTML=`<section class="alert">
-  <h1>🌙 AFTER-HOURS CHECK-IN</h1>
-  <p>After 5 PM, please check in at the Shipping Desk through Door W2.</p>
-  <p class="address">457 St. Paul Blvd., Carol Stream, IL 60188</p>
-  <p><strong>DURING BUSINESS HOURS FOR HELP CALL</strong></p>
-  <p class="help">📞 630-871-5765</p>
+
+
+/* CLOSED / AFTER-HOURS SCREEN */
+function showAfterHours(type){
+
+  content.innerHTML=`
+
+  <section class="alert">
+
+    <h1>🌙 AFTER-HOURS CHECK-IN</h1>
+
+    <p>
+      ${type} check-in is currently unavailable.
+    </p>
+
+    <p>
+      Please check in at the Shipping Desk through Door W2.
+    </p>
+
+    <p class="address">
+      457 St. Paul Blvd., Carol Stream, IL 60188
+    </p>
+
+    <p>
+      <strong>
+        DURING BUSINESS HOURS FOR HELP CALL
+      </strong>
+    </p>
+
+    <p class="help">
+      📞 630-871-5765
+    </p>
+
   </section>
-  <div class="small">Driver form submission is unavailable during after-hours check-in.</div>`;
-}else{
-  content.innerHTML=`<section class="open">
-  <h1>Driver Check-In</h1>
-  <p>Check-in is available.</p>
-  <p>You will be redirected to the SRM Logistics Pickup & Delivery form.</p>
-  <a class="btn" href="${FORM_URL}">Continue to Check-In</a>
-  </section>`;
-  setTimeout(()=>location.replace(FORM_URL),1800);
+
+  <div class="small">
+    Driver form submission is unavailable for this check-in type at this time.
+  </div>
+
+  `;
 }
+
+
+/* PICKUP BUTTON */
+function selectPickup(){
+
+  if(pickupIsOpen()){
+
+    location.replace(FORM_URL);
+
+  }else{
+
+    showAfterHours("Pickup");
+
+  }
+}
+
+
+/* DELIVERY BUTTON */
+function selectDelivery(){
+
+  if(deliveryIsOpen()){
+
+    location.replace(FORM_URL);
+
+  }else{
+
+    showAfterHours("Delivery");
+
+  }
+}
+
+
+/* MAIN CHECK-IN SCREEN */
+content.innerHTML=`
+
+<section class="open">
+
+  <h1>DRIVER CHECK-IN</h1>
+
+  <p>
+    Please select your check-in type.
+  </p>
+
+  <button class="btn" onclick="selectPickup()">
+    🚛 PICKUP
+  </button>
+
+  <br>
+
+  <button class="btn" onclick="selectDelivery()">
+    🚚 DELIVERY
+  </button>
+
+  <div class="small">
+    Check-in availability is automatically controlled using Central Time.
+  </div>
+
+</section>
+
+`;
+
 </script>
+
 </body>
 </html>
