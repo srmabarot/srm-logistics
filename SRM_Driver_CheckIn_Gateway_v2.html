@@ -203,7 +203,7 @@ function centralTime(){
     weekday:"short",
     hour:"2-digit",
     minute:"2-digit",
-    hour12:false
+    hourCycle:"h23"
   }).formatToParts(new Date());
 
   return {
@@ -254,6 +254,26 @@ function between(startHour,startMinute,endHour,endMinute){
 
 
 /* =====================================================
+   GLOBAL ONLINE CHECK-IN CUT-OFF
+
+   Both Pickup and Delivery are unavailable through this
+   gateway from 5:00 PM until 6:00 AM, America/Chicago.
+   Each service's daytime schedule still applies.
+   Physical evening loading hours do not reopen this page.
+
+   IMPORTANT: This static gateway does not disable the
+   Microsoft Form itself or enforce submission-time rules.
+   ===================================================== */
+
+function isAfterHours(){
+
+  const now = minutesNow();
+
+  return now < 6*60 || now >= 17*60;
+}
+
+
+/* =====================================================
    HOLIDAY CALENDAR HELPERS
    ===================================================== */
 
@@ -295,6 +315,10 @@ function lastWeekdayOfMonth(year,month,weekday){
 
 /* =====================================================
    SRM HOLIDAY SCHEDULE
+
+   Existing rules retained without adding dates.
+   No weekend-observed dates or shift-specific New Year
+   exceptions are assumed by this code.
 
    Based on SRM posted holiday schedule:
 
@@ -391,65 +415,42 @@ function getSRMHoliday(){
 
 
 /* =====================================================
-   PICKUP / LOADING HOURS
+   PICKUP ONLINE CHECK-IN HOURS
 
-   MONDAY–FRIDAY
-   6:00 AM – 4:00 PM
-   6:00 PM – 10:00 PM
+   MONDAY-FRIDAY
+   6:00 AM - 4:00 PM
+   (Original daytime closing time is preserved.)
 
    SATURDAY
-   6:00 AM – 12:00 PM
-   4:00 PM – 9:00 PM
+   6:00 AM - 12:00 PM
+   4:00 PM - 5:00 PM
+   (Original afternoon window capped at the 5 PM cut-off.)
 
    SUNDAY
    CLOSED
+
+   No online Pickup check-in after 5 PM, even when
+   physical loading operations continue in the evening.
    ===================================================== */
 
 function pickupIsOpen(){
 
-  /* HOLIDAY OVERRIDE */
-
-  if(getSRMHoliday()){
-
+  if(getSRMHoliday() || isAfterHours()){
     return false;
-
   }
-
 
   const {day}=centralTime();
 
-
   if(
-    day==="Mon" ||
-    day==="Tue" ||
-    day==="Wed" ||
-    day==="Thu" ||
-    day==="Fri"
+    day==="Mon" || day==="Tue" || day==="Wed" ||
+    day==="Thu" || day==="Fri"
   ){
-
-    return (
-
-      between(6,0,16,0) ||
-
-      between(18,0,22,0)
-
-    );
-
+    return between(6,0,16,0);
   }
-
 
   if(day==="Sat"){
-
-    return (
-
-      between(6,0,12,0) ||
-
-      between(16,0,21,0)
-
-    );
-
+    return between(6,0,12,0) || between(16,0,17,0);
   }
-
 
   return false;
 }
@@ -470,7 +471,7 @@ function deliveryIsOpen(){
 
   /* HOLIDAY OVERRIDE */
 
-  if(getSRMHoliday()){
+  if(getSRMHoliday() || isAfterHours()){
 
     return false;
 
@@ -605,6 +606,20 @@ function showAfterHours(type){
 
 
 /* =====================================================
+   GLOBAL CLOSED SCREEN: NO PICKUP OR DELIVERY BUTTONS
+   ===================================================== */
+
+function showGeneralAfterHours(){
+
+  showAfterHours("Driver Pickup & Delivery");
+
+  content.querySelector(".small").textContent =
+    "Online driver check-in through this page is unavailable from " +
+    "5:00 PM to 6:00 AM Central Time.";
+}
+
+
+/* =====================================================
    PICKUP BUTTON
    ===================================================== */
 
@@ -618,6 +633,14 @@ function selectPickup(){
 
     showHoliday(holiday);
 
+    return;
+
+  }
+
+
+  if(isAfterHours()){
+
+    showGeneralAfterHours();
     return;
 
   }
@@ -656,6 +679,14 @@ function selectDelivery(){
   }
 
 
+  if(isAfterHours()){
+
+    showGeneralAfterHours();
+    return;
+
+  }
+
+
   if(deliveryIsOpen()){
 
     location.replace(FORM_URL);
@@ -671,8 +702,10 @@ function selectDelivery(){
 
 
 /* =====================================================
-   FIRST CHECK:
-   IS TODAY AN SRM HOLIDAY?
+   PAGE STARTUP PRIORITY
+   1. EXISTING SRM HOLIDAY RULES
+   2. GLOBAL 5 PM - 6 AM ONLINE CUT-OFF
+   3. PICKUP / DELIVERY SELECTION
    ===================================================== */
 
 const holidayToday =
@@ -690,6 +723,12 @@ if(holidayToday){
   */
 
   showHoliday(holidayToday);
+
+}
+
+else if(isAfterHours()){
+
+  showGeneralAfterHours();
 
 }
 
