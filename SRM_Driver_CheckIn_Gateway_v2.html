@@ -1,11 +1,14 @@
 <!doctype html>
 <html lang="en">
+
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+
 <title>SRM Logistics Driver Check-In</title>
 
 <style>
+
 body{
   margin:0;
   font-family:Arial,Helvetica,sans-serif;
@@ -73,9 +76,41 @@ body{
   line-height:1.35;
 }
 
+.holiday{
+  border:3px solid #0b2d5c;
+  background:#f4f8ff;
+  border-radius:14px;
+  padding:24px;
+  text-align:center;
+}
+
+.holiday h1{
+  margin:0 0 14px;
+  color:#0b2d5c;
+  font-size:30px;
+}
+
+.holiday h2{
+  margin:12px 0;
+  color:#b83224;
+  font-size:27px;
+}
+
+.holiday p{
+  margin:10px 0;
+  font-size:21px;
+  font-weight:700;
+  line-height:1.35;
+}
+
 .address{
   color:#0b2d5c;
   font-size:21px!important;
+}
+
+.help{
+  margin-top:18px!important;
+  color:#b83224;
 }
 
 .open{
@@ -96,7 +131,7 @@ body{
 
 .btn{
   display:inline-block;
-  margin-top:18px;
+  margin:12px 8px 0;
   padding:14px 22px;
   border-radius:10px;
   background:#0b2d5c;
@@ -104,6 +139,9 @@ body{
   text-decoration:none;
   font-weight:700;
   font-size:18px;
+  border:0;
+  cursor:pointer;
+  min-width:250px;
 }
 
 .small{
@@ -112,263 +150,671 @@ body{
   font-size:13px;
   text-align:center;
 }
+
 </style>
 </head>
+
 
 <body>
 
 <main class="card">
 
-  <div class="header">
-    <div class="brand">SRM</div>
-    <div class="sub">
-      Specialty Rolled Metals — Logistics Driver Check-In
-    </div>
+<div class="header">
+
+  <div class="brand">
+    SRM
   </div>
 
-  <div class="content" id="content"></div>
+  <div class="sub">
+    Specialty Rolled Metals — Logistics Driver Check-In
+  </div>
+
+</div>
+
+<div class="content" id="content"></div>
 
 </main>
 
+
 <script>
+
+/* =====================================================
+   EXISTING MICROSOFT FORM
+   DO NOT CHANGE
+   ===================================================== */
 
 const FORM_URL =
 "https://forms.cloud.microsoft/Pages/ResponsePage.aspx?id=3cVIiWDZM0arWL-bU52JehAYwZgLLgZPmEQS1ku1pXBUOVRBWUJZNTM4WUhSVVQxVVFORUZYQktPNi4u";
 
 const TZ = "America/Chicago";
 
-/*
-=================================================
-SRM DRIVER QR CHECK-IN HOURS
-=================================================
 
-Monday-Friday:
-6:00 AM - 5:30 PM
+/* =====================================================
+   GET CURRENT CENTRAL TIME / DATE
+   ===================================================== */
 
-Saturday:
-6:00 AM - 3:00 PM
+function centralTime(){
 
-Sunday:
-CLOSED
-
-All times are Central Time.
-=================================================
-*/
-
-
-function getCentralTime(){
-
-  const parts = new Intl.DateTimeFormat(
-    "en-US",
-    {
-      timeZone: TZ,
-      weekday: "short",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false
-    }
-  ).formatToParts(new Date());
-
-  const weekday =
-    parts.find(p => p.type === "weekday").value;
-
-  const hour =
-    Number(parts.find(p => p.type === "hour").value);
-
-  const minute =
-    Number(parts.find(p => p.type === "minute").value);
+  const parts = new Intl.DateTimeFormat("en-US",{
+    timeZone:TZ,
+    year:"numeric",
+    month:"2-digit",
+    day:"2-digit",
+    weekday:"short",
+    hour:"2-digit",
+    minute:"2-digit",
+    hourCycle:"h23"
+  }).formatToParts(new Date());
 
   return {
-    weekday,
-    hour,
-    minute
+
+    year:
+      Number(parts.find(p=>p.type==="year").value),
+
+    month:
+      Number(parts.find(p=>p.type==="month").value),
+
+    date:
+      Number(parts.find(p=>p.type==="day").value),
+
+    day:
+      parts.find(p=>p.type==="weekday").value,
+
+    hour:
+      Number(parts.find(p=>p.type==="hour").value),
+
+    minute:
+      Number(parts.find(p=>p.type==="minute").value)
+
   };
 }
 
 
-function minutesSinceMidnight(hour,minute){
+/* =====================================================
+   TIME HELPERS
+   ===================================================== */
 
-  return (hour * 60) + minute;
+function minutesNow(){
 
+  const {hour,minute}=centralTime();
+
+  return (hour*60)+minute;
 }
 
 
-function between(
-  time,
-  startHour,
-  startMinute,
-  endHour,
-  endMinute
-){
+function between(startHour,startMinute,endHour,endMinute){
 
-  const start =
-    minutesSinceMidnight(
-      startHour,
-      startMinute
-    );
+  const now=minutesNow();
 
-  const end =
-    minutesSinceMidnight(
-      endHour,
-      endMinute
-    );
+  const start=(startHour*60)+startMinute;
+  const end=(endHour*60)+endMinute;
 
-  return time >= start && time < end;
-
+  return now>=start && now<end;
 }
 
 
-function isCheckInOpen(){
+/* =====================================================
+   FINAL SRM ONLINE CHECK-IN HOURS
 
-  const {
-    weekday,
-    hour,
-    minute
-  } = getCentralTime();
+   MONDAY-FRIDAY
+   6:00 AM - 5:30 PM
 
-  const time =
-    minutesSinceMidnight(
-      hour,
-      minute
-    );
+   SATURDAY
+   6:00 AM - 3:00 PM
+
+   SUNDAY
+   CLOSED
+
+   All times use America/Chicago (Central Time).
+   ===================================================== */
+
+function isAfterHours(){
+
+  const {day}=centralTime();
+  const now=minutesNow();
+
+  /* MONDAY-FRIDAY */
+  if(
+    day==="Mon" ||
+    day==="Tue" ||
+    day==="Wed" ||
+    day==="Thu" ||
+    day==="Fri"
+  ){
+    return now < 6*60 || now >= (17*60+30);
+  }
+
+  /* SATURDAY */
+  if(day==="Sat"){
+    return now < 6*60 || now >= 15*60;
+  }
+
+  /* SUNDAY */
+  return true;
+}
 
 
-  /*
-  MONDAY THROUGH FRIDAY
-  6:00 AM - 5:30 PM
+/* =====================================================
+   HOLIDAY CALENDAR HELPERS
+   ===================================================== */
+
+/*
+  weekday:
+  0 = Sunday
+  1 = Monday
+  2 = Tuesday
+  3 = Wednesday
+  4 = Thursday
+  5 = Friday
+  6 = Saturday
+*/
+
+function nthWeekdayOfMonth(year,month,weekday,nth){
+
+  const firstDay =
+    new Date(Date.UTC(year,month-1,1)).getUTCDay();
+
+  const offset =
+    (weekday-firstDay+7)%7;
+
+  return 1+offset+((nth-1)*7);
+}
+
+
+function lastWeekdayOfMonth(year,month,weekday){
+
+  const lastDate =
+    new Date(Date.UTC(year,month,0));
+
+  const lastDay =
+    lastDate.getUTCDay();
+
+  return lastDate.getUTCDate()
+    - ((lastDay-weekday+7)%7);
+}
+
+
+/* =====================================================
+   SRM HOLIDAY SCHEDULE
+
+   Existing rules retained.
+
+   Memorial Day
+   Independence Day
+   Labor Day
+   Thanksgiving Day
+   Christmas Eve
+   Christmas Day
+   New Year's Day
+   ===================================================== */
+
+function getSRMHoliday(){
+
+  const {year,month,date}=centralTime();
+
+
+  /* NEW YEAR'S DAY */
+
+  if(month===1 && date===1){
+
+    return "New Year's Day";
+
+  }
+
+
+  /* MEMORIAL DAY
+     LAST MONDAY OF MAY
   */
+
+  const memorialDay =
+    lastWeekdayOfMonth(year,5,1);
+
+  if(month===5 && date===memorialDay){
+
+    return "Memorial Day";
+
+  }
+
+
+  /* INDEPENDENCE DAY */
+
+  if(month===7 && date===4){
+
+    return "Independence Day";
+
+  }
+
+
+  /* LABOR DAY
+     FIRST MONDAY OF SEPTEMBER
+  */
+
+  const laborDay =
+    nthWeekdayOfMonth(year,9,1,1);
+
+  if(month===9 && date===laborDay){
+
+    return "Labor Day";
+
+  }
+
+
+  /* THANKSGIVING
+     FOURTH THURSDAY OF NOVEMBER
+  */
+
+  const thanksgiving =
+    nthWeekdayOfMonth(year,11,4,4);
+
+  if(month===11 && date===thanksgiving){
+
+    return "Thanksgiving Day";
+
+  }
+
+
+  /* CHRISTMAS EVE */
+
+  if(month===12 && date===24){
+
+    return "Christmas Eve";
+
+  }
+
+
+  /* CHRISTMAS DAY */
+
+  if(month===12 && date===25){
+
+    return "Christmas Day";
+
+  }
+
+
+  return null;
+}
+
+
+/* =====================================================
+   PICKUP ONLINE CHECK-IN HOURS
+
+   MONDAY-FRIDAY
+   6:00 AM - 5:30 PM
+
+   SATURDAY
+   6:00 AM - 3:00 PM
+
+   SUNDAY
+   CLOSED
+   ===================================================== */
+
+function pickupIsOpen(){
+
+  if(getSRMHoliday() || isAfterHours()){
+    return false;
+  }
+
+  const {day}=centralTime();
 
   if(
-    weekday === "Mon" ||
-    weekday === "Tue" ||
-    weekday === "Wed" ||
-    weekday === "Thu" ||
-    weekday === "Fri"
+    day==="Mon" ||
+    day==="Tue" ||
+    day==="Wed" ||
+    day==="Thu" ||
+    day==="Fri"
   ){
-
-    return between(
-      time,
-      6,0,
-      17,30
-    );
-
+    return between(6,0,17,30);
   }
 
-
-  /*
-  SATURDAY
-  6:00 AM - 3:00 PM
-  */
-
-  if(weekday === "Sat"){
-
-    return between(
-      time,
-      6,0,
-      15,0
-    );
-
+  if(day==="Sat"){
+    return between(6,0,15,0);
   }
-
-
-  /*
-  SUNDAY
-  CLOSED
-  */
 
   return false;
+}
 
+
+/* =====================================================
+   DELIVERY ONLINE CHECK-IN HOURS
+
+   MONDAY-FRIDAY
+   6:00 AM - 5:30 PM
+
+   SATURDAY
+   6:00 AM - 3:00 PM
+
+   SUNDAY
+   CLOSED
+   ===================================================== */
+
+function deliveryIsOpen(){
+
+  if(getSRMHoliday() || isAfterHours()){
+
+    return false;
+
+  }
+
+  const {day}=centralTime();
+
+  if(
+    day==="Mon" ||
+    day==="Tue" ||
+    day==="Wed" ||
+    day==="Thu" ||
+    day==="Fri"
+  ){
+
+    return between(6,0,17,30);
+
+  }
+
+  if(day==="Sat"){
+
+    return between(6,0,15,0);
+
+  }
+
+  return false;
 }
 
 
 const content =
-  document.getElementById("content");
+document.getElementById("content");
 
 
-/*
-=================================================
-CHECK-IN IS OPEN
-=================================================
-*/
+/* =====================================================
+   SRM HOLIDAY CLOSED SCREEN
+   ===================================================== */
 
-if(isCheckInOpen()){
+function showHoliday(holidayName){
 
   content.innerHTML=`
 
-    <section class="open">
+  <section class="holiday">
 
-      <h1>Driver Check-In</h1>
+    <h1>
+      🇺🇸 SRM HOLIDAY
+    </h1>
 
-      <p>
-        Check-in is available.
-      </p>
+    <h2>
+      FACILITY CLOSED
+    </h2>
 
-      <p>
-        You will be redirected to the
-        SRM Logistics Pickup & Delivery form.
-      </p>
+    <p>
+      Specialty Rolled Metals is closed today
+      in observance of
+      <strong>${holidayName}</strong>.
+    </p>
 
-      <a
-        class="btn"
-        href="${FORM_URL}">
-        Continue to Check-In
-      </a>
+    <p>
+      Driver Pickup & Delivery Check-In
+      is unavailable today.
+    </p>
 
-    </section>
+    <p>
+      Please return during the next
+      scheduled business hours.
+    </p>
+
+    <p>
+      FOR HELP CALL
+    </p>
+
+    <p class="help">
+      📞 630-871-5765
+    </p>
+
+  </section>
+
+  <div class="small">
+    SRM Logistics Driver Check-In
+  </div>
 
   `;
-
-
-  /*
-  Automatically send driver to
-  Microsoft Forms after 1.8 seconds.
-  */
-
-  setTimeout(
-    () => location.replace(FORM_URL),
-    1800
-  );
 
 }
 
 
-/*
-=================================================
-AFTER HOURS
-=================================================
-*/
+/* =====================================================
+   CLOSED / AFTER-HOURS SCREEN
+   ===================================================== */
 
-else{
+function showAfterHours(type){
 
   content.innerHTML=`
 
-    <section class="alert">
+  <section class="alert">
 
-      <h1>
-        🌙 AFTER-HOURS CHECK-IN
-      </h1>
+    <h1>
+      🌙 AFTER-HOURS CHECK-IN
+    </h1>
 
-      <p>
-        Please check in at the Shipping Desk
-        through Door W2.
-      </p>
+    <p>
+      ${type} check-in is currently unavailable.
+    </p>
 
-      <p class="address">
-        457 St. Paul Blvd.<br>
-        Carol Stream, IL 60188
-      </p>
+    <p>
+      Please check in at the Shipping Desk
+      through Door W2.
+    </p>
 
-      <p>
-        Phone assistance is unavailable
-        during after-hours check-in.
-      </p>
+    <p class="address">
+      457 St. Paul Blvd.,
+      Carol Stream, IL 60188
+    </p>
 
-    </section>
+    <p>
+      <strong>
+        DURING BUSINESS HOURS FOR HELP CALL
+      </strong>
+    </p>
+
+    <p class="help">
+      📞 630-871-5765
+    </p>
+
+  </section>
+
+  <div class="small">
+    Driver form submission is unavailable
+    for this check-in type at this time.
+  </div>
+
+  `;
+
+}
+
+
+/* =====================================================
+   GLOBAL CLOSED SCREEN
+   ===================================================== */
+
+function showGeneralAfterHours(){
+
+  showAfterHours("Driver Pickup & Delivery");
+
+  const {day}=centralTime();
+
+  if(day==="Sat"){
+
+    content.querySelector(".small").textContent =
+      "Online driver check-in is unavailable after 3:00 PM Saturday.";
+
+  }
+  else if(day==="Sun"){
+
+    content.querySelector(".small").textContent =
+      "Online driver check-in is unavailable on Sunday.";
+
+  }
+  else{
+
+    content.querySelector(".small").textContent =
+      "Online driver check-in is unavailable after 5:30 PM Monday through Friday.";
+
+  }
+
+}
+
+
+/* =====================================================
+   PICKUP BUTTON
+   ===================================================== */
+
+function selectPickup(){
+
+  const holiday =
+    getSRMHoliday();
+
+
+  if(holiday){
+
+    showHoliday(holiday);
+
+    return;
+
+  }
+
+
+  if(isAfterHours()){
+
+    showGeneralAfterHours();
+
+    return;
+
+  }
+
+
+  if(pickupIsOpen()){
+
+    location.replace(FORM_URL);
+
+  }
+  else{
+
+    showAfterHours("Pickup");
+
+  }
+
+}
+
+
+/* =====================================================
+   DELIVERY BUTTON
+   ===================================================== */
+
+function selectDelivery(){
+
+  const holiday =
+    getSRMHoliday();
+
+
+  if(holiday){
+
+    showHoliday(holiday);
+
+    return;
+
+  }
+
+
+  if(isAfterHours()){
+
+    showGeneralAfterHours();
+
+    return;
+
+  }
+
+
+  if(deliveryIsOpen()){
+
+    location.replace(FORM_URL);
+
+  }
+  else{
+
+    showAfterHours("Delivery");
+
+  }
+
+}
+
+
+/* =====================================================
+   PAGE STARTUP PRIORITY
+
+   1. SRM HOLIDAY RULES
+   2. FINAL DAY/TIME CHECK
+   3. PICKUP / DELIVERY SELECTION
+   ===================================================== */
+
+const holidayToday =
+getSRMHoliday();
+
+
+if(holidayToday){
+
+  /*
+    ON AN SRM HOLIDAY THE DRIVER DOES NOT
+    SEE PICKUP / DELIVERY BUTTONS.
+
+    THE FACILITY CLOSED SCREEN APPEARS.
+  */
+
+  showHoliday(holidayToday);
+
+}
+
+else if(isAfterHours()){
+
+  showGeneralAfterHours();
+
+}
+
+else{
+
+  /* ===================================================
+     NORMAL CHECK-IN SCREEN
+     =================================================== */
+
+  content.innerHTML=`
+
+  <section class="open">
+
+    <h1>
+      DRIVER CHECK-IN
+    </h1>
+
+    <p>
+      Please select your check-in type.
+    </p>
+
+    <button
+      class="btn"
+      onclick="selectPickup()">
+
+      🚛 PICKUP
+
+    </button>
+
+    <br>
+
+    <button
+      class="btn"
+      onclick="selectDelivery()">
+
+      🚚 DELIVERY
+
+    </button>
 
     <div class="small">
-      Driver form submission is unavailable
-      during after-hours check-in.
+      Check-in availability is automatically
+      controlled using Central Time.
     </div>
+
+  </section>
 
   `;
 
